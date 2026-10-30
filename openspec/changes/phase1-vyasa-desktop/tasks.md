@@ -23,7 +23,8 @@
 - [x] 4.2 Scan one configured root without reconciling unrelated roots; test with isolated data.
 - [x] 4.3 Connect workspace selection and explicit all-or-one workspace scanning to Electron and exercise the deployed backend with isolated data.
 - [x] 4.4 Select a backend-supported technology and browse matching projects across workspaces.
-- [ ] 4.5 Add canonical workspace names and project-scoped scanning when their backend contracts are available.
+- [x] 4.5 Assign and display human-managed local workspace names without changing roots or starting a scan.
+- [ ] 4.6 Add project-scoped scanning when its backend contract is available.
 
 ## 5. Project context slice
 

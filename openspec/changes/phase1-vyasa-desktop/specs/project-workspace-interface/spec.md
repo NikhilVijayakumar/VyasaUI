@@ -29,6 +29,10 @@ The application SHALL offer separate workspace and technology project views usin
 - **WHEN** a user selects a configured workspace
 - **THEN** the project list contains only projects returned by the backend for that workspace
 
+#### Scenario: Name a workspace
+- **WHEN** a user names a configured workspace
+- **THEN** the application saves the name through the backend and displays it with the workspace root
+
 #### Scenario: Browse by technology
 - **WHEN** a user selects a technology
 - **THEN** the project list contains projects matching that technology across workspaces

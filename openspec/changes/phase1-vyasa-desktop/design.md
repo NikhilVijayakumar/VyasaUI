@@ -19,6 +19,7 @@ The installed Windows Vyasa CLI currently supports only `scan` and `profile-cont
 - A project scan must not run the existing whole-root absence reconciliation against a subset of that root. The backend must define and test project-scoped reconciliation before the UI exposes the action.
 - The technology selector uses the backend's versioned detector registry; catalog membership describes supported filters and does not claim a technology was observed in any project.
 - Project detail, report, dependencies and profile-context responses are displayed only when their backend project identifier matches the current selection. Profile context is retrieved from the indexed CLI query and its provenance and workflow remain visible.
+- Workspace names are human-managed local metadata owned by the backend; the root remains visible for disambiguation and selecting or naming a root never starts a scan. See `knowledge/concepts/workspace-names.md`.
 - Installation/data paths are configurable locally and must not assume a developer-specific machine path when distributed.
 
 ## Risks / Trade-offs
