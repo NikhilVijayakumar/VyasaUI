@@ -24,3 +24,9 @@
 - [x] 4.3 Connect workspace selection and explicit all-or-one workspace scanning to Electron and exercise the deployed backend with isolated data.
 - [x] 4.4 Select a backend-supported technology and browse matching projects across workspaces.
 - [ ] 4.5 Add canonical workspace names and project-scoped scanning when their backend contracts are available.
+
+## 5. Project context slice
+
+- [x] 5.1 Expose the existing indexed profile-context CLI query through the validated Electron boundary.
+- [x] 5.2 Display the selected project's profile context, source and workflow; prevent another project's report, dependency or context payload from being presented as the current project.
+- [ ] 5.3 Verify delayed and out-of-order project responses, keyboard navigation and accessibility across all project detail tabs.

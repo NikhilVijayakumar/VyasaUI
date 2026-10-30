@@ -60,7 +60,7 @@ function registerHandlers(): void {
     if (typeof cursor === 'string' && cursor) args.push('--cursor=' + cursor);
     return invokeBackend(args);
   });
-  for (const name of ['project', 'report', 'dependencies'] as const) {
+  for (const name of ['project', 'context', 'report', 'dependencies'] as const) {
     ipcMain.handle('vyasa:' + name, (_event, id: unknown) => {
       if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return failure('Invalid project identifier.');
       return invokeBackend(['query', name, id]);

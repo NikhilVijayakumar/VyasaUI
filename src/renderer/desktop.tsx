@@ -57,6 +57,7 @@ export function Desktop(): React.JSX.Element {
   const [scanState, executeScan, setScanState] = useDataState<ScanResult>();
   const [reportState, executeReport] = useDataState<Envelope<Record<string, unknown>>>();
   const [dependencyState, executeDependencies] = useDataState<Envelope<Record<string, unknown>>>();
+  const [contextState, executeContext] = useDataState<Envelope<Record<string, unknown>>>();
   const [workspaceState, executeWorkspaces] = useDataState<Envelope<{ workspaces: Workspace[] }>>();
   const [technologyState, executeTechnologies] = useDataState<Envelope<{ registry_version: number; technologies: Technology[] }>>();
 
@@ -92,6 +93,7 @@ export function Desktop(): React.JSX.Element {
     void executeDetail(() => ipc.invoke<Envelope<ProjectDetail>>('vyasa:project', selected));
     void executeReport(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:report', selected));
     void executeDependencies(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:dependencies', selected));
+    void executeContext(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:context', selected));
   }, [selected]);
   useEffect(() => {
     if (scanState.isSuccess && scanState.data) { setScanResult(scanState.data); loadStatus(); setItems([]); search(); }
@@ -104,7 +106,7 @@ export function Desktop(): React.JSX.Element {
   };
   const detail = detailState.data?.data?.project_id === selected ? detailState.data.data : undefined;
   const version = versionState.data?.data.version;
-  const dependencies = dependencyState.data?.data?.dependencies;
+  const dependencies = dependencyState.data?.data?.project_id === selected ? dependencyState.data.data.dependencies : undefined;
   const dependencyRows = Array.isArray(dependencies) ? dependencies.map((row: Record<string, unknown>, index: number) => ({ ...row, rowKey: String(index) })) : [];
 
   return <Box sx={{ minHeight: '100vh', display: 'flex', bgcolor: 'background.default' }}>
@@ -174,18 +176,24 @@ export function Desktop(): React.JSX.Element {
                 <Stack direction="row" spacing={1}><Chip label={detail.state} size="small" /><Chip label={detailState.data?.meta?.freshness || t['common.unknown']} size="small" /></Stack>
                 <Typography variant="body2" color="text.secondary">{t['analysis.external']}</Typography><Divider />
                 <Tabs value={detailTab} onChange={(_event, value: number) => setDetailTab(value)} variant="scrollable" allowScrollButtonsMobile aria-label={t['project.evidence']}>
-                  <Tab label={t['project.overview']} /><Tab label={t['project.profile']} /><Tab label={t['project.report']} /><Tab label={t['project.dependencies']} />
+                  <Tab label={t['project.overview']} /><Tab label={t['project.profile']} /><Tab label={t['project.report']} /><Tab label={t['project.dependencies']} /><Tab label={t['project.context']} />
                 </Tabs>
                 {detailTab === 0 && <DataBlock title={t['project.observations']} data={detail.checkouts} />}
                 {detailTab === 1 && <DataBlock title={t['project.evidence']} data={{ profile: detail.profile, identity: detail.identity, review_candidates: detail.review_candidates }} />}
-                {detailTab === 2 && reportState.isSuccess && <DataBlock title={t['project.report']} data={reportState.data?.data} />}
+                {detailTab === 2 && reportState.isSuccess && reportState.data?.data?.project_id === selected && <DataBlock title={t['project.report']} data={reportState.data.data} />}
                 {detailTab === 2 && reportState.isError && <Alert severity="warning">{reportState.statusMessage}</Alert>}
-                {detailTab === 3 && dependencyState.isSuccess && <>
+                {detailTab === 3 && dependencyState.isSuccess && dependencyState.data?.data?.project_id === selected && <>
                   <DataBlock title={t['project.coverage']} data={dependencyState.data?.data?.coverage} />
                   <Typography variant="subtitle1" fontWeight={600}>{t['project.dependencies']}</Typography>
                   <DataTable columns={[{ id: 'name', label: t['project.name'] }, { id: 'scope', label: t['project.scope'] }, { id: 'constraint', label: t['project.constraint'] }, { id: 'source', label: t['project.source'] }, { id: 'resolution', label: t['project.resolution'] }]} data={dependencyRows} keyField="rowKey" aria-label={t['project.dependencies']} />
                 </>}
                 {detailTab === 3 && dependencyState.isError && <Alert severity="warning">{dependencyState.statusMessage}</Alert>}
+                {detailTab === 4 && <>
+                  <Typography variant="body2" color="text.secondary">{t['project.contextDescription']}</Typography>
+                  {contextState.state === StateType.LOADING && <CircularProgress size={22} aria-label={t['common.loading']} />}
+                  {contextState.isError && <Alert severity="warning">{contextState.statusMessage}</Alert>}
+                  {contextState.isSuccess && contextState.data?.data?.project_id === selected && <DataBlock title={t['project.context']} data={contextState.data.data} />}
+                </>}
               </Stack>}
             </Paper>
           </Box>
