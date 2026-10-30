@@ -1,0 +1,15 @@
+schema: spec-driven
+context: |
+  Vyasa UI is an Electron and React desktop interface for the Vyasa MCP server.
+  Prati supplies UI components and Astra supplies application state and MVVM patterns.
+  Consult the OKF bundle in knowledge/ before specifying behavior. Keep durable
+  knowledge independent of change artifacts. Define integrations before implementing them.
+rules:
+  proposal:
+    - State scope, motivation, dependencies, and open questions.
+  specs:
+    - Specify observable behavior with scenarios.
+  design:
+    - Describe process boundaries and integration contracts.
+  tasks:
+    - Include implementation and verification tasks.
