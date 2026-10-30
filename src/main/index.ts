@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { parseProjectScan, projectQueryArgs, supportsProjectScan, validProjectId } from './project-scan';
 
 let activeWindow: BrowserWindow | null = null;
 const defaultExecutable = 'E:\\MCP\\Vyasa MCP\\vyasa\\vyasa.exe';
@@ -18,6 +19,31 @@ function response(data: unknown): object {
 }
 function failure(message: string): object {
   return { isSuccess: false, isError: true, status: 500, statusMessage: message };
+}
+function projectCapability(): Promise<boolean> {
+  const binary = executable();
+  if (!existsSync(binary)) return Promise.resolve(false);
+  return new Promise((done) => execFile(binary, ['query', 'capabilities'], { timeout: 30_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true }, (error, stdout) => done(!error && supportsProjectScan(stdout))));
+}
+async function scanProject(id: unknown): Promise<object> {
+  if (!validProjectId(id)) return failure('Invalid project identifier.');
+  if (!await projectCapability()) return failure('Project-specific scanning is unavailable in the selected backend.');
+  const binary = executable();
+  return new Promise((done) => execFile(binary, ['scan', '--project=' + id, '--json'], {
+    timeout: 600_000, maxBuffer: 8 * 1024 * 1024, windowsHide: true,
+    env: { ...process.env, VYASA_HOME: process.env.VYASA_HOME || resolve(dirname(binary), '..', 'data') }
+  }, (error, stdout) => {
+    const code = error ? error.code : 0;
+    if (code !== 0 && code !== 1) {
+      try {
+        const result = JSON.parse(stdout);
+        if (typeof result?.error?.message === 'string' && typeof result.error.code === 'string' && !result.data && !result.schema_version) return done(failure(result.error.message));
+      } catch { /* invalid response */ }
+      return done(failure('The project scan could not be completed.'));
+    }
+    try { return done(response(parseProjectScan(stdout, code, id))); }
+    catch { return done(failure('The backend returned an invalid project scan response.')); }
+  }));
 }
 function invokeBackend(args: string[], scan = false): Promise<object> {
   const binary = executable();
@@ -45,6 +71,8 @@ function invokeBackend(args: string[], scan = false): Promise<object> {
   });
 }
 function registerHandlers(): void {
+  ipcMain.handle('vyasa:project-scan-capability', async () => response(await projectCapability()));
+  ipcMain.handle('vyasa:project-scan', (_event, id: unknown) => scanProject(id));
   ipcMain.handle('vyasa:version', () => invokeBackend(['query', 'version']));
   ipcMain.handle('vyasa:status', () => invokeBackend(['query', 'status']));
   ipcMain.handle('vyasa:workspaces', () => invokeBackend(['query', 'workspaces']));
@@ -68,8 +96,8 @@ function registerHandlers(): void {
   });
   for (const name of ['project', 'context', 'report', 'dependencies'] as const) {
     ipcMain.handle('vyasa:' + name, (_event, id: unknown) => {
-      if (typeof id !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(id)) return failure('Invalid project identifier.');
-      return invokeBackend(['query', name, id]);
+      if (!validProjectId(id)) return failure('Invalid project identifier.');
+      return invokeBackend(projectQueryArgs(name, id));
     });
   }
   ipcMain.handle('vyasa:scan', (_event, workspace: unknown) => {
