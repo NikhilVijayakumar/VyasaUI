@@ -1,5 +1,9 @@
 # Desktop shell
 
+## Purpose
+
+Launch the Vyasa UI desktop window and show whether the local integration is configured.
+
 ## Requirements
 
 ### Requirement: Launch the desktop shell
