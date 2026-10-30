@@ -48,6 +48,7 @@ function registerHandlers(): void {
   ipcMain.handle('vyasa:version', () => invokeBackend(['query', 'version']));
   ipcMain.handle('vyasa:status', () => invokeBackend(['query', 'status']));
   ipcMain.handle('vyasa:workspaces', () => invokeBackend(['query', 'workspaces']));
+  ipcMain.handle('vyasa:technologies', () => invokeBackend(['query', 'technologies']));
   ipcMain.handle('vyasa:search', (_event, input: unknown) => {
     if (!input || typeof input !== 'object') return failure('Invalid search request.');
     const { query, technology, cursor, workspace } = input as Record<string, unknown>;
