@@ -20,6 +20,10 @@ for (const name of ['alpha', 'beta']) {
 fs.writeFileSync(path.join(home, 'config.toml'), `[workspace]\nroots = ["${root.replaceAll('\\', '/')}"]\n`);
 const env = { ...process.env, VYASA_HOME: home, VYASA_CLI_PATH: deployed };
 execFileSync(deployed, ['scan'], { env, timeout: 300_000 });
+const missingRoot = path.join(temp, 'gone');
+const fileRoot = path.join(temp, 'not-a-directory.txt');
+fs.writeFileSync(fileRoot, 'not a directory');
+fs.writeFileSync(path.join(home, 'config.toml'), `[workspace]\nroots = ["${root.replaceAll('\\', '/')}", "${missingRoot.replaceAll('\\', '/')}", "${fileRoot.replaceAll('\\', '/')}"]\n`);
 
 async function main() {
   const app = await launch({ env, profile: path.join(temp, 'profile') });
@@ -57,6 +61,14 @@ async function main() {
     await app.evaluate("[...document.querySelectorAll('[role=button]')].find(e => e.textContent.includes('beta')).focus()");
     await app.key('Enter');
     await app.until("document.querySelector('[aria-label=\"Project details\"] h5')?.textContent === 'beta'");
+
+    await app.evaluate("(() => { const combo = document.querySelector('[role=combobox]'); combo.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true })); })()");
+    await app.until("document.querySelectorAll('[role=option]').length >= 3");
+    const rootOptions = await app.evaluate("[...document.querySelectorAll('[role=option]')].map((e) => e.textContent)");
+    assert.ok(rootOptions.some((text) => text.endsWith('(accessible)')), 'accessible root is listed');
+    assert.ok(rootOptions.some((text) => text.endsWith('(missing)')), 'missing root is surfaced');
+    assert.ok(rootOptions.some((text) => text.endsWith('(not_a_directory)')), 'non-directory root is surfaced');
+    await app.key('Escape');
 
     await app.evaluate(`(() => {
       const input = [...document.querySelectorAll('form input')].find((element) => element.type === 'text');
