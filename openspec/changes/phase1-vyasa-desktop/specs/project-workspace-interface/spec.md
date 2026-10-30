@@ -7,6 +7,14 @@ The application SHALL allow users to browse supported projects and open their de
 - **WHEN** the user selects an indexed project
 - **THEN** the application displays available backend observations and their provenance
 
+#### Scenario: View profile context
+- **WHEN** the user opens profile context for the selected project
+- **THEN** the application displays its indexed context, source, workflow guidance, and review findings returned by the backend
+
+#### Scenario: Switch projects while details load
+- **WHEN** a response for a previously selected project arrives after selection changes
+- **THEN** its content is not displayed as the currently selected project's evidence
+
 ### Requirement: Use the established frontend libraries
 The application SHALL use Astra public state and IPC capabilities and Prati public providers and components for their respective shared responsibilities.
 
