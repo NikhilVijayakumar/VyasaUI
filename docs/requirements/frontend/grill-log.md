@@ -2,7 +2,9 @@
 
 Status: interview in progress. Questions are open until answered; backend recommendations are not automatically user decisions.
 
-The owner clarified that Vyasa UI and Vyasa share product and domain knowledge and functional scope. CLI and MCP server functionality is backend-only; frontend architecture uses Astra and Prati. See the [coverage map](backend-coverage.md). The owner has not yet selected the first user workflow or mockup slice.
+The owner clarified that Vyasa UI and Vyasa share product and domain knowledge and functional scope. CLI and MCP server functionality is backend-only; frontend architecture uses Astra and Prati. See the [coverage map](backend-coverage.md).
+
+The owner selected direction C, an evidence-first project research workspace, for the visual mockup. This selects the design direction; exact first-run behavior, supported actions, backend integration and acceptance criteria remain open.
 
 | ID | Dimension | Question | Status |
 |---|---|---|---|

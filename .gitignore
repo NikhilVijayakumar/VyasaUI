@@ -11,3 +11,4 @@ config/
 .DS_Store
 *.log
 graphify-out/
+docs/mockups/screenshots/
