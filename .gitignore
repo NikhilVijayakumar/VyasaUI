@@ -12,3 +12,4 @@ config/
 *.log
 graphify-out/
 docs/mockups/screenshots/
+.work-backend/

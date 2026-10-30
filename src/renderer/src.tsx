@@ -2,13 +2,38 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppStateProvider } from 'astra';
 import { ThemeProvider, LanguageProvider, lightTheme, darkTheme, LoadingState, ErrorState, EmptyState } from 'prati';
-import { Box, Container, Typography } from '@mui/material';
+import { Desktop } from './desktop';
 
+const translations = { en: {
+  'app.title': 'Vyasa', 'app.tagline': 'Workspace intelligence',
+  'nav.workspaces': 'Workspaces', 'nav.technologies': 'Technologies', 'nav.settings': 'Settings',
+  'projects.title': 'Explore projects', 'projects.caption': 'Find projects and understand the evidence behind them.',
+  'projects.search': 'Search projects', 'projects.technology': 'Technology key', 'projects.apply': 'Search',
+  'projects.empty': 'No projects match this query.', 'projects.more': 'Load more',
+  'project.choose': 'Select a project to see its indexed details.', 'project.evidence': 'Project evidence',
+  'project.observations': 'Indexed observations', 'project.report': 'Project report', 'project.dependencies': 'Dependencies',
+  'project.overview': 'Overview', 'project.profile': 'Profile', 'project.review': 'Review candidates',
+  'project.metadata': 'Repository observations', 'project.name': 'Name', 'project.scope': 'Scope', 'project.source': 'Source',
+  'project.resolution': 'Resolution', 'project.constraint': 'Constraint', 'project.coverage': 'Coverage',
+  'index.status': 'Index status', 'index.refresh': 'Scan all configured workspaces', 'index.confirm': 'Run an explicit scan of all configured workspace roots?',
+  'index.scan': 'Run scan', 'index.cancel': 'Cancel', 'index.running': 'Scanning configured workspaces…',
+  'index.completed': 'Scan finished', 'index.partial': 'Scan completed with warnings',
+  'settings.title': 'Backend connection', 'settings.select': 'Select Vyasa CLI', 'settings.version': 'Backend version',
+  'settings.description': 'Choose the installed Vyasa executable. Its adjacent data directory holds the local index.',
+  'settings.uiVersion': 'UI version', 'settings.pending': 'Not available',
+  'common.retry': 'Retry', 'common.close': 'Close', 'common.loading': 'Loading…', 'common.error': 'Unable to load data',
+  'common.unknown': 'Unknown', 'common.back': 'Back', 'common.unavailable': 'Not available',
+  'technology.help': 'Enter a supported technology key, such as react or fastapi.',
+  'workspace.help': 'The current backend searches the whole index. Workspace selection is not yet supported.',
+  'report.empty': 'No report information is available.', 'data.source': 'Backend response',
+  'scan.unsupported': 'Individual workspace and project scan scopes are not supported by this backend.',
+  'analysis.external': 'Deeper analysis is performed in an external coding agent; refresh the index after its work is complete.'
+} };
 function App(): React.JSX.Element {
   return <ThemeProvider lightTheme={lightTheme} darkTheme={darkTheme}>
-    <LanguageProvider translations={{ en: {} }} availableLanguages={[{ code: 'en', label: 'English' }]} defaultLanguage="en">
+    <LanguageProvider translations={translations} availableLanguages={[{ code: 'en', label: 'English' }]} defaultLanguage="en">
       <AppStateProvider value={{ Loading: LoadingState, Error: ({ message }) => <ErrorState message={message} />, Empty: EmptyState }}>
-        <Container maxWidth="md"><Box sx={{ py: 8 }}><Typography variant="overline">Workspace intelligence</Typography><Typography variant="h3" component="h1">Vyasa UI</Typography><Typography sx={{ mt: 2 }}>Desktop foundation ready for the Vyasa mockup.</Typography><Typography sx={{ mt: 1 }} color="text.secondary">Vyasa integration has not been configured yet.</Typography></Box></Container>
+        <Desktop />
       </AppStateProvider>
     </LanguageProvider>
   </ThemeProvider>;
