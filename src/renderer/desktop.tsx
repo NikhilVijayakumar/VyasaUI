@@ -14,6 +14,7 @@ interface SearchResult { projects: ProjectSummary[]; page: { next_cursor?: strin
 interface ProjectDetail { project_id: string; display_name: string; state: string; checkouts: unknown[]; profile?: unknown; identity?: unknown; review_candidates?: unknown[] }
 interface ScanResult { status: string; output: string; warning: string }
 interface Workspace { root: string; status: string }
+interface Technology { key: string; name: string; category: string; ecosystem: string }
 const ipc = new IpcService();
 
 function DataBlock({ title, data }: { title: string; data: unknown }): React.JSX.Element {
@@ -57,11 +58,13 @@ export function Desktop(): React.JSX.Element {
   const [reportState, executeReport] = useDataState<Envelope<Record<string, unknown>>>();
   const [dependencyState, executeDependencies] = useDataState<Envelope<Record<string, unknown>>>();
   const [workspaceState, executeWorkspaces] = useDataState<Envelope<{ workspaces: Workspace[] }>>();
+  const [technologyState, executeTechnologies] = useDataState<Envelope<{ registry_version: number; technologies: Technology[] }>>();
 
   const loadStatus = (): void => {
     void executeStatus(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:status'));
     void executeVersion(() => ipc.invoke<Envelope<{ version: string }>>('vyasa:version'));
     void executeWorkspaces(() => ipc.invoke<Envelope<{ workspaces: Workspace[] }>>('vyasa:workspaces'));
+    void executeTechnologies(() => ipc.invoke<Envelope<{ registry_version: number; technologies: Technology[] }>>('vyasa:technologies'));
   };
   const search = (cursor?: string): void => {
     const request = ++searchRequest.current;
@@ -83,7 +86,7 @@ export function Desktop(): React.JSX.Element {
   };
 
   useEffect(() => { loadStatus(); }, []);
-  useEffect(() => { setItems([]); setSelected(null); setNextCursor(null); search(); }, [page, workspace]); // Text search is submitted explicitly.
+  useEffect(() => { setItems([]); setSelected(null); setNextCursor(null); search(); }, [page, workspace, technology]); // Text search is submitted explicitly.
   useEffect(() => {
     if (!selected) return;
     void executeDetail(() => ipc.invoke<Envelope<ProjectDetail>>('vyasa:project', selected));
@@ -97,7 +100,7 @@ export function Desktop(): React.JSX.Element {
   const submitSearch = (): void => { setItems([]); setSelected(null); setNextCursor(null); search(); };
   const chooseBackend = async (): Promise<void> => {
     const result = await ipc.invoke<{ canceled: boolean }>('vyasa:select');
-    if (result.isSuccess && !result.data?.canceled) { setWorkspace(''); setScanWorkspace(''); loadStatus(); setItems([]); if (!workspace) search(); }
+    if (result.isSuccess && !result.data?.canceled) { setWorkspace(''); setScanWorkspace(''); setTechnology(''); loadStatus(); setItems([]); if (!workspace && !technology) search(); }
   };
   const detail = detailState.data?.data?.project_id === selected ? detailState.data.data : undefined;
   const version = versionState.data?.data.version;
@@ -146,10 +149,14 @@ export function Desktop(): React.JSX.Element {
                   {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{item.root} ({item.status})</MenuItem>)}
                 </TextField>}
                 <TextField size="small" label={t['projects.search']} value={query} onChange={(e) => setQuery(e.target.value)} fullWidth />
-                {page === 'technologies' && <TextField size="small" label={t['projects.technology']} value={technology} onChange={(e) => setTechnology(e.target.value)} fullWidth />}
+                {page === 'technologies' && <TextField select size="small" label={t['projects.technology']} value={technology} onChange={(e) => setTechnology(e.target.value)} fullWidth disabled={technologyState.isError || technologyState.state === StateType.LOADING}>
+                  <MenuItem value="">{t['projects.allTechnologies']}</MenuItem>
+                  {(technologyState.data?.data.technologies || []).map((item) => <MenuItem key={item.key} value={item.key}>{item.name} ({item.ecosystem})</MenuItem>)}
+                </TextField>}
                 <Button type="submit" variant="outlined">{t['projects.apply']}</Button>
               </Stack>
               {page === 'workspaces' && workspaceState.isError && <Alert severity="error" sx={{ mt: 2 }}>{workspaceState.statusMessage}</Alert>}
+              {page === 'technologies' && technologyState.isError && <Alert severity="error" sx={{ mt: 2 }}>{technologyState.statusMessage} <Button onClick={loadStatus}>{t['common.retry']}</Button></Alert>}
               {searchState.state === StateType.LOADING && <CircularProgress size={22} sx={{ mt: 2 }} aria-label={t['common.loading']} />}
               {searchState.isError && <Alert severity="error" sx={{ mt: 2 }}>{searchState.statusMessage}</Alert>}
               {!searchState.isError && searchState.isSuccess && !items.length && <Typography sx={{ mt: 2 }} color="text.secondary">{t['projects.empty']}</Typography>}

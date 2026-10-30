@@ -22,4 +22,5 @@
 - [x] 4.1 List configured roots and filter indexed search in the backend before pagination.
 - [x] 4.2 Scan one configured root without reconciling unrelated roots; test with isolated data.
 - [x] 4.3 Connect workspace selection and explicit all-or-one workspace scanning to Electron and exercise the deployed backend with isolated data.
-- [ ] 4.4 Add canonical workspace names, project-scoped scanning and technology selection when their backend contracts are available.
+- [x] 4.4 Select a backend-supported technology and browse matching projects across workspaces.
+- [ ] 4.5 Add canonical workspace names and project-scoped scanning when their backend contracts are available.
