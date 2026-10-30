@@ -48,6 +48,12 @@ function registerHandlers(): void {
   ipcMain.handle('vyasa:version', () => invokeBackend(['query', 'version']));
   ipcMain.handle('vyasa:status', () => invokeBackend(['query', 'status']));
   ipcMain.handle('vyasa:workspaces', () => invokeBackend(['query', 'workspaces']));
+  ipcMain.handle('vyasa:workspace-name', (_event, input: unknown) => {
+    if (!input || typeof input !== 'object') return failure('Invalid workspace name request.');
+    const { root, name } = input as Record<string, unknown>;
+    if (typeof root !== 'string' || !root || root.length > 500 || typeof name !== 'string' || !name.trim() || name.trim().length > 100) return failure('Invalid workspace name request.');
+    return invokeBackend(['workspace', 'set-name', '--root=' + root, '--name=' + name]);
+  });
   ipcMain.handle('vyasa:technologies', () => invokeBackend(['query', 'technologies']));
   ipcMain.handle('vyasa:search', (_event, input: unknown) => {
     if (!input || typeof input !== 'object') return failure('Invalid search request.');

@@ -13,7 +13,7 @@ interface ProjectSummary { project_id: string; display_name: string; state: stri
 interface SearchResult { projects: ProjectSummary[]; page: { next_cursor?: string | null; has_more?: boolean } }
 interface ProjectDetail { project_id: string; display_name: string; state: string; checkouts: unknown[]; profile?: unknown; identity?: unknown; review_candidates?: unknown[] }
 interface ScanResult { status: string; output: string; warning: string }
-interface Workspace { root: string; status: string }
+interface Workspace { root: string; status: string; name?: string | null }
 interface Technology { key: string; name: string; category: string; ecosystem: string }
 const ipc = new IpcService();
 
@@ -49,6 +49,10 @@ export function Desktop(): React.JSX.Element {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const searchRequest = useRef(0);
   const [scanOpen, setScanOpen] = useState(false);
+  const [nameOpen, setNameOpen] = useState(false);
+  const [nameInput, setNameInput] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [nameSaving, setNameSaving] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [searchState, executeSearch] = useDataState<Envelope<SearchResult>>();
   const [detailState, executeDetail] = useDataState<Envelope<ProjectDetail>>();
@@ -104,6 +108,14 @@ export function Desktop(): React.JSX.Element {
     const result = await ipc.invoke<{ canceled: boolean }>('vyasa:select');
     if (result.isSuccess && !result.data?.canceled) { setWorkspace(''); setScanWorkspace(''); setTechnology(''); loadStatus(); setItems([]); if (!workspace && !technology) search(); }
   };
+  const saveWorkspaceName = async (): Promise<void> => {
+    setNameSaving(true); setNameError('');
+    const result = await ipc.invoke<Envelope<{ root: string; name: string }>>('vyasa:workspace-name', { root: workspace, name: nameInput });
+    setNameSaving(false);
+    if (result.isSuccess) { setNameOpen(false); loadStatus(); }
+    else setNameError(result.statusMessage || t['common.error']);
+  };
+  const workspaceLabel = (item: Workspace): string => `${item.name ? item.name + ' — ' : ''}${item.root} (${item.status})`;
   const detail = detailState.data?.data?.project_id === selected ? detailState.data.data : undefined;
   const version = versionState.data?.data.version;
   const dependencies = dependencyState.data?.data?.project_id === selected ? dependencyState.data.data.dependencies : undefined;
@@ -148,8 +160,9 @@ export function Desktop(): React.JSX.Element {
               <Stack component="form" spacing={1.5} onSubmit={(e: React.FormEvent) => { e.preventDefault(); submitSearch(); }}>
                 {page === 'workspaces' && <TextField select size="small" label={t['workspace.select']} value={workspace} onChange={(e) => setWorkspace(e.target.value)} fullWidth>
                   <MenuItem value="">{t['workspace.all']}</MenuItem>
-                  {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{item.root} ({item.status})</MenuItem>)}
+                  {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{workspaceLabel(item)}</MenuItem>)}
                 </TextField>}
+                {page === 'workspaces' && <Button disabled={!workspace} onClick={() => { setNameInput(workspaceState.data?.data.workspaces.find((item) => item.root === workspace)?.name || ''); setNameError(''); setNameOpen(true); }}>{t['workspace.nameAction']}</Button>}
                 <TextField size="small" label={t['projects.search']} value={query} onChange={(e) => setQuery(e.target.value)} fullWidth />
                 {page === 'technologies' && <TextField select size="small" label={t['projects.technology']} value={technology} onChange={(e) => setTechnology(e.target.value)} fullWidth disabled={technologyState.isError || technologyState.state === StateType.LOADING}>
                   <MenuItem value="">{t['projects.allTechnologies']}</MenuItem>
@@ -203,11 +216,18 @@ export function Desktop(): React.JSX.Element {
     <Dialog open={scanOpen} onClose={() => setScanOpen(false)}><DialogTitle>{t['index.refresh']}</DialogTitle>
       <DialogContent><DialogContentText>{t['index.confirm']}</DialogContentText><TextField select fullWidth sx={{ mt: 2 }} label={t['workspace.select']} value={scanWorkspace} onChange={(e) => setScanWorkspace(e.target.value)}>
         <MenuItem value="">{t['workspace.all']}</MenuItem>
-        {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{item.root} ({item.status})</MenuItem>)}
+        {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{workspaceLabel(item)}</MenuItem>)}
       </TextField><DialogContentText sx={{ mt: 2 }}>{t['scan.unsupported']}</DialogContentText></DialogContent>
       <DialogActions><Button onClick={() => setScanOpen(false)}>{t['index.cancel']}</Button><Button onClick={() => { setScanOpen(false); setScanResult(null); void executeScan(() => ipc.invoke<ScanResult>('vyasa:scan', scanWorkspace || undefined)); }}>{t['index.scan']}</Button></DialogActions>
     </Dialog>
     {scanState.state === StateType.LOADING && <Dialog open><DialogContent><Stack direction="row" spacing={2} alignItems="center"><CircularProgress size={24} /><Typography>{t['index.running']}</Typography></Stack></DialogContent></Dialog>}
     {scanState.isError && <Dialog open onClose={() => setScanState((s) => ({ ...s, isError: false }))}><DialogTitle>{t['common.error']}</DialogTitle><DialogContent>{scanState.statusMessage}</DialogContent><DialogActions><Button onClick={() => setScanState((s) => ({ ...s, isError: false }))}>{t['common.close']}</Button></DialogActions></Dialog>}
+    <Dialog open={nameOpen} onClose={() => { if (!nameSaving) setNameOpen(false); }}><DialogTitle>{t['workspace.nameTitle']}</DialogTitle>
+      <DialogContent><DialogContentText>{workspace}</DialogContentText><DialogContentText>{t['workspace.nameHelp']}</DialogContentText>
+        <TextField autoFocus fullWidth sx={{ mt: 2 }} label={t['workspace.nameLabel']} value={nameInput} onChange={(e) => setNameInput(e.target.value)} inputProps={{ maxLength: 100 }} />
+        {nameError && <Alert severity="error" sx={{ mt: 2 }}>{nameError}</Alert>}
+      </DialogContent><DialogActions><Button disabled={nameSaving} onClick={() => setNameOpen(false)}>{t['index.cancel']}</Button>
+        <Button disabled={nameSaving || !nameInput.trim()} onClick={() => { void saveWorkspaceName(); }}>{t['workspace.save']}</Button></DialogActions>
+    </Dialog>
   </Box>;
 }

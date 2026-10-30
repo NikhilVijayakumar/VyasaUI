@@ -26,6 +26,8 @@ const translations = { en: {
   'common.unknown': 'Unknown', 'common.back': 'Back', 'common.unavailable': 'Not available',
   'technology.help': 'Choose a supported technology to find matching projects across workspaces.',
   'workspace.help': 'Choose all workspaces or one configured root.', 'workspace.select': 'Workspace', 'workspace.all': 'All workspaces',
+  'workspace.nameAction': 'Name workspace', 'workspace.nameTitle': 'Name workspace', 'workspace.nameLabel': 'Workspace name',
+  'workspace.nameHelp': 'Names are stored locally. The workspace root remains unchanged.', 'workspace.save': 'Save name',
   'report.empty': 'No report information is available.', 'data.source': 'Backend response',
   'scan.unsupported': 'Project-specific scanning is not yet available.',
   'analysis.external': 'Deeper analysis is performed in an external coding agent; refresh the index after its work is complete.'
