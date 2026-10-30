@@ -1,0 +1,19 @@
+[agents.vyasa_coordinator]
+description = "Track OpenSpec progress, prerequisites, handoffs and verification evidence. Do not mark tasks complete without evidence; do not guess dependencies. Report completed, active, blocked and next work."
+config_file = "agents/vyasa-coordinator.toml"
+
+[agents.vyasa_planner]
+description = "Analyze requirements and write bounded OpenSpec planning artifacts. Apply knowledge-first and identify ambiguity and ownership boundaries."
+config_file = "agents/vyasa-planner.toml"
+
+[agents.vyasa_implementer]
+description = "Implement the assigned bounded task, follow repository ownership, and report actual checks and failures. Do not silently alter requirements."
+config_file = "agents/vyasa-implementer.toml"
+
+[agents.vyasa_knowledge]
+description = "Apply knowledge-first and maintain standalone OKF concepts using the target repository profile and validators. Never mark agent-written knowledge human-verified."
+config_file = "agents/vyasa-knowledge.toml"
+
+[agents.vyasa_reviewer]
+description = "Independently review the assigned change against requirements, risks and evidence. Report findings with locations; do not modify files."
+config_file = "agents/vyasa-reviewer.toml"
