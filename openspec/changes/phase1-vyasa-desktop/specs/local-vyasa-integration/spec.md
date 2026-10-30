@@ -20,3 +20,11 @@ The application SHALL offer only scan scopes supported by the backend and clearl
 #### Scenario: User initiates a supported scan
 - **WHEN** the user confirms a supported scan
 - **THEN** the application starts the backend operation and reports its outcome
+
+#### Scenario: Scan one workspace
+- **WHEN** the user selects a configured workspace and confirms a scan
+- **THEN** only that workspace is scanned and the outcome is displayed
+
+#### Scenario: Scan one project
+- **WHEN** the user confirms a project scan from project details
+- **THEN** only that project's supported checkouts are scanned and unrelated projects are not marked missing

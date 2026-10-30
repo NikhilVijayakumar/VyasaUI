@@ -4,7 +4,7 @@ import { DataTable, ThemeToggle, useLanguage, useTheme } from 'prati';
 import {
   Alert, AppBar, Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
   DialogContentText, DialogTitle, Divider, List, ListItemButton, ListItemText, Paper,
-  Stack, Tab, Tabs, TextField, Toolbar, Typography
+  Stack, Tab, Tabs, TextField, Toolbar, Typography, MenuItem
 } from '@mui/material';
 
 declare const __APP_VERSION__: string;
@@ -13,6 +13,7 @@ interface ProjectSummary { project_id: string; display_name: string; state: stri
 interface SearchResult { projects: ProjectSummary[]; page: { next_cursor?: string | null; has_more?: boolean } }
 interface ProjectDetail { project_id: string; display_name: string; state: string; checkouts: unknown[]; profile?: unknown; identity?: unknown; review_candidates?: unknown[] }
 interface ScanResult { status: string; output: string; warning: string }
+interface Workspace { root: string; status: string }
 const ipc = new IpcService();
 
 function DataBlock({ title, data }: { title: string; data: unknown }): React.JSX.Element {
@@ -39,6 +40,8 @@ export function Desktop(): React.JSX.Element {
   const [page, setPage] = useState<'workspaces' | 'technologies' | 'settings'>('workspaces');
   const [query, setQuery] = useState('');
   const [technology, setTechnology] = useState('');
+  const [workspace, setWorkspace] = useState('');
+  const [scanWorkspace, setScanWorkspace] = useState('');
   const [selected, setSelected] = useState<string | null>(null);
   const [detailTab, setDetailTab] = useState(0);
   const [items, setItems] = useState<ProjectSummary[]>([]);
@@ -53,16 +56,19 @@ export function Desktop(): React.JSX.Element {
   const [scanState, executeScan, setScanState] = useDataState<ScanResult>();
   const [reportState, executeReport] = useDataState<Envelope<Record<string, unknown>>>();
   const [dependencyState, executeDependencies] = useDataState<Envelope<Record<string, unknown>>>();
+  const [workspaceState, executeWorkspaces] = useDataState<Envelope<{ workspaces: Workspace[] }>>();
 
   const loadStatus = (): void => {
     void executeStatus(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:status'));
     void executeVersion(() => ipc.invoke<Envelope<{ version: string }>>('vyasa:version'));
+    void executeWorkspaces(() => ipc.invoke<Envelope<{ workspaces: Workspace[] }>>('vyasa:workspaces'));
   };
   const search = (cursor?: string): void => {
     const request = ++searchRequest.current;
     void executeSearch(async () => {
       const result = await ipc.invoke<Envelope<SearchResult>>('vyasa:search', {
-        query: query.trim() || undefined, technology: page === 'technologies' ? technology.trim() || undefined : undefined, cursor
+        query: query.trim() || undefined, technology: page === 'technologies' ? technology.trim() || undefined : undefined,
+        workspace: page === 'workspaces' ? workspace || undefined : undefined, cursor
       });
       if (request === searchRequest.current && result.isSuccess && result.data) {
         const data = result.data.data;
@@ -77,7 +83,7 @@ export function Desktop(): React.JSX.Element {
   };
 
   useEffect(() => { loadStatus(); }, []);
-  useEffect(() => { setItems([]); setSelected(null); search(); }, [page]); // Search is submitted explicitly.
+  useEffect(() => { setItems([]); setSelected(null); setNextCursor(null); search(); }, [page, workspace]); // Text search is submitted explicitly.
   useEffect(() => {
     if (!selected) return;
     void executeDetail(() => ipc.invoke<Envelope<ProjectDetail>>('vyasa:project', selected));
@@ -91,7 +97,7 @@ export function Desktop(): React.JSX.Element {
   const submitSearch = (): void => { setItems([]); setSelected(null); setNextCursor(null); search(); };
   const chooseBackend = async (): Promise<void> => {
     const result = await ipc.invoke<{ canceled: boolean }>('vyasa:select');
-    if (result.isSuccess && !result.data?.canceled) { loadStatus(); setItems([]); search(); }
+    if (result.isSuccess && !result.data?.canceled) { setWorkspace(''); setScanWorkspace(''); loadStatus(); setItems([]); if (!workspace) search(); }
   };
   const detail = detailState.data?.data?.project_id === selected ? detailState.data.data : undefined;
   const version = versionState.data?.data.version;
@@ -135,10 +141,15 @@ export function Desktop(): React.JSX.Element {
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(260px, 330px) minmax(0,1fr)' }, gap: 2 }}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Stack component="form" spacing={1.5} onSubmit={(e: React.FormEvent) => { e.preventDefault(); submitSearch(); }}>
+                {page === 'workspaces' && <TextField select size="small" label={t['workspace.select']} value={workspace} onChange={(e) => setWorkspace(e.target.value)} fullWidth>
+                  <MenuItem value="">{t['workspace.all']}</MenuItem>
+                  {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{item.root} ({item.status})</MenuItem>)}
+                </TextField>}
                 <TextField size="small" label={t['projects.search']} value={query} onChange={(e) => setQuery(e.target.value)} fullWidth />
                 {page === 'technologies' && <TextField size="small" label={t['projects.technology']} value={technology} onChange={(e) => setTechnology(e.target.value)} fullWidth />}
                 <Button type="submit" variant="outlined">{t['projects.apply']}</Button>
               </Stack>
+              {page === 'workspaces' && workspaceState.isError && <Alert severity="error" sx={{ mt: 2 }}>{workspaceState.statusMessage}</Alert>}
               {searchState.state === StateType.LOADING && <CircularProgress size={22} sx={{ mt: 2 }} aria-label={t['common.loading']} />}
               {searchState.isError && <Alert severity="error" sx={{ mt: 2 }}>{searchState.statusMessage}</Alert>}
               {!searchState.isError && searchState.isSuccess && !items.length && <Typography sx={{ mt: 2 }} color="text.secondary">{t['projects.empty']}</Typography>}
@@ -175,8 +186,11 @@ export function Desktop(): React.JSX.Element {
       </Box>
     </Box>
     <Dialog open={scanOpen} onClose={() => setScanOpen(false)}><DialogTitle>{t['index.refresh']}</DialogTitle>
-      <DialogContent><DialogContentText>{t['index.confirm']}</DialogContentText><DialogContentText>{t['scan.unsupported']}</DialogContentText></DialogContent>
-      <DialogActions><Button onClick={() => setScanOpen(false)}>{t['index.cancel']}</Button><Button onClick={() => { setScanOpen(false); setScanResult(null); void executeScan(() => ipc.invoke<ScanResult>('vyasa:scan')); }}>{t['index.scan']}</Button></DialogActions>
+      <DialogContent><DialogContentText>{t['index.confirm']}</DialogContentText><TextField select fullWidth sx={{ mt: 2 }} label={t['workspace.select']} value={scanWorkspace} onChange={(e) => setScanWorkspace(e.target.value)}>
+        <MenuItem value="">{t['workspace.all']}</MenuItem>
+        {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{item.root} ({item.status})</MenuItem>)}
+      </TextField><DialogContentText sx={{ mt: 2 }}>{t['scan.unsupported']}</DialogContentText></DialogContent>
+      <DialogActions><Button onClick={() => setScanOpen(false)}>{t['index.cancel']}</Button><Button onClick={() => { setScanOpen(false); setScanResult(null); void executeScan(() => ipc.invoke<ScanResult>('vyasa:scan', scanWorkspace || undefined)); }}>{t['index.scan']}</Button></DialogActions>
     </Dialog>
     {scanState.state === StateType.LOADING && <Dialog open><DialogContent><Stack direction="row" spacing={2} alignItems="center"><CircularProgress size={24} /><Typography>{t['index.running']}</Typography></Stack></DialogContent></Dialog>}
     {scanState.isError && <Dialog open onClose={() => setScanState((s) => ({ ...s, isError: false }))}><DialogTitle>{t['common.error']}</DialogTitle><DialogContent>{scanState.statusMessage}</DialogContent><DialogActions><Button onClick={() => setScanState((s) => ({ ...s, isError: false }))}>{t['common.close']}</Button></DialogActions></Dialog>}
