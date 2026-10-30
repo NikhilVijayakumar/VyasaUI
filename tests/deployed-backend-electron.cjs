@@ -58,6 +58,15 @@ async function main() {
     await app.key('Enter');
     await app.until("document.querySelector('[aria-label=\"Project details\"] h5')?.textContent === 'beta'");
 
+    await app.evaluate(`(() => {
+      const input = [...document.querySelectorAll('form input')].find((element) => element.type === 'text');
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(input, 'no-such-project');
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.form.requestSubmit();
+    })()`);
+    await app.until("document.body.textContent.includes('No projects match this query.')");
+    assert.equal(await app.evaluate("document.querySelector('[aria-label=\"Project details\"] h5') === null"), true);
+
     await app.evaluate("[...document.querySelectorAll('[role=button]')].find(e => e.textContent === 'Settings').click()");
     await app.until("document.body.textContent.includes('Backend version')");
     assert.match(await app.evaluate("document.body.textContent"), /\d+\.\d+\.\d+/, 'installed backend version is shown');
