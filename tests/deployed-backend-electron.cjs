@@ -43,8 +43,19 @@ async function main() {
     assert.ok(panel.includes('readme'), 'backend markers are preserved');
     assert.ok(panel.includes('active'), 'project state is preserved');
 
-    assert.equal(await app.evaluate("[...document.querySelectorAll('button')].find(e => e.textContent === 'Scan project').disabled"), true);
-    assert.ok(panel.includes('Project-specific scanning is unavailable'), 'installed backend capability gap is explained');
+    const scanButton = "[...document.querySelectorAll('button')].find(e => e.textContent === 'Scan project')";
+    assert.equal(await app.evaluate(`${scanButton}.disabled`), false, 'installed backend advertises project scanning');
+    assert.equal(await app.evaluate("document.body.textContent.includes('Project-specific scanning is unavailable')"), false);
+    await app.evaluate(`${scanButton}.click()`);
+    await app.until("document.body.textContent.includes('Scan the indexed checkouts for this project?')");
+    await app.evaluate("[...document.querySelectorAll('[role=dialog] button')].find(e => e.textContent === 'Run scan').click()");
+    await app.until("document.body.textContent.includes('Scan finished')");
+    await sleep(500); // the scan refresh re-queries the list; wait before asserting or clicking rows
+    await app.until("[...document.querySelectorAll('[role=button]')].some(e => e.textContent.includes('beta'))");
+    const outcome = await app.evaluate("document.querySelector('[aria-label=\"Project details\"]').textContent");
+    assert.ok(outcome.includes('Checkout outcomes'), 'project scan outcomes are shown');
+    assert.ok(outcome.includes('completed'), 'the installed backend completed the checkout');
+    assert.equal(outcome.includes('failed'), false, 'no checkout failed');
 
     const tabs = await app.evaluate("document.querySelectorAll('[role=tab]').length");
     assert.equal(tabs, 5);
