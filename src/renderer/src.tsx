@@ -19,6 +19,8 @@ const translations = { en: {
   'index.status': 'Index status', 'index.refresh': 'Scan workspaces', 'index.confirm': 'Choose the workspace scope to scan.',
   'index.scan': 'Run scan', 'index.cancel': 'Cancel', 'index.running': 'Scanning configured workspaces…',
   'index.completed': 'Scan finished', 'index.partial': 'Scan completed with warnings',
+  'index.failed': 'Scan failed', 'project.scan': 'Scan project', 'project.scanConfirm': 'Scan the indexed checkouts for this project?',
+  'project.scanning': 'Scanning project…', 'project.scanOutcomes': 'Checkout outcomes',
   'settings.title': 'Backend connection', 'settings.select': 'Select Vyasa CLI', 'settings.version': 'Backend version',
   'settings.description': 'Choose the installed Vyasa executable. Its adjacent data directory holds the local index.',
   'settings.uiVersion': 'UI version', 'settings.pending': 'Not available',
@@ -29,7 +31,7 @@ const translations = { en: {
   'workspace.nameAction': 'Name workspace', 'workspace.nameTitle': 'Name workspace', 'workspace.nameLabel': 'Workspace name',
   'workspace.nameHelp': 'Names are stored locally. The workspace root remains unchanged.', 'workspace.save': 'Save name',
   'report.empty': 'No report information is available.', 'data.source': 'Backend response',
-  'scan.unsupported': 'Project-specific scanning is not yet available.',
+  'scan.unsupported': 'Project-specific scanning is unavailable with the selected backend.',
   'analysis.external': 'Deeper analysis is performed in an external coding agent; refresh the index after its work is complete.'
 } };
 function App(): React.JSX.Element {

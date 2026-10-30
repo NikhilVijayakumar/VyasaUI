@@ -24,7 +24,7 @@
 - [x] 4.3 Connect workspace selection and explicit all-or-one workspace scanning to Electron and exercise the deployed backend with isolated data.
 - [x] 4.4 Select a backend-supported technology and browse matching projects across workspaces.
 - [x] 4.5 Assign and display human-managed local workspace names without changing roots or starting a scan.
-- [ ] 4.6 Add project-scoped scanning when its backend contract is available.
+- [x] 4.6 Add project-scoped scanning when its backend contract is available.
 
 ## 5. Project context slice
 

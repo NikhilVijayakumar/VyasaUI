@@ -13,6 +13,7 @@ interface ProjectSummary { project_id: string; display_name: string; state: stri
 interface SearchResult { projects: ProjectSummary[]; page: { next_cursor?: string | null; has_more?: boolean } }
 interface ProjectDetail { project_id: string; display_name: string; state: string; checkouts: unknown[]; profile?: unknown; identity?: unknown; review_candidates?: unknown[] }
 interface ScanResult { status: string; output: string; warning: string }
+interface ProjectScanResult { project_id: string; run_id: string; status: 'completed' | 'partial' | 'failed'; checkouts: { checkout_id: number; status: string; reason: string | null }[] }
 interface Workspace { root: string; status: string; name?: string | null }
 interface Technology { key: string; name: string; category: string; ecosystem: string }
 const ipc = new IpcService();
@@ -49,6 +50,9 @@ export function Desktop(): React.JSX.Element {
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const searchRequest = useRef(0);
   const [scanOpen, setScanOpen] = useState(false);
+  const [projectScanOpen, setProjectScanOpen] = useState(false);
+  const [projectScanSupported, setProjectScanSupported] = useState(false);
+  const [projectScanResult, setProjectScanResult] = useState<ProjectScanResult | null>(null);
   const [nameOpen, setNameOpen] = useState(false);
   const [nameInput, setNameInput] = useState('');
   const [nameError, setNameError] = useState('');
@@ -59,6 +63,7 @@ export function Desktop(): React.JSX.Element {
   const [statusState, executeStatus] = useDataState<Envelope<Record<string, unknown>>>();
   const [versionState, executeVersion] = useDataState<Envelope<{ version: string }>>();
   const [scanState, executeScan, setScanState] = useDataState<ScanResult>();
+  const [projectScanState, executeProjectScan, setProjectScanState] = useDataState<ProjectScanResult>();
   const [reportState, executeReport] = useDataState<Envelope<Record<string, unknown>>>();
   const [dependencyState, executeDependencies] = useDataState<Envelope<Record<string, unknown>>>();
   const [contextState, executeContext] = useDataState<Envelope<Record<string, unknown>>>();
@@ -66,6 +71,8 @@ export function Desktop(): React.JSX.Element {
   const [technologyState, executeTechnologies] = useDataState<Envelope<{ registry_version: number; technologies: Technology[] }>>();
 
   const loadStatus = (): void => {
+    setProjectScanSupported(false);
+    void ipc.invoke<boolean>('vyasa:project-scan-capability').then((result) => setProjectScanSupported(result.isSuccess && result.data === true));
     void executeStatus(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:status'));
     void executeVersion(() => ipc.invoke<Envelope<{ version: string }>>('vyasa:version'));
     void executeWorkspaces(() => ipc.invoke<Envelope<{ workspaces: Workspace[] }>>('vyasa:workspaces'));
@@ -93,6 +100,7 @@ export function Desktop(): React.JSX.Element {
   useEffect(() => { loadStatus(); }, []);
   useEffect(() => { setItems([]); setSelected(null); setNextCursor(null); search(); }, [page, workspace, technology]); // Text search is submitted explicitly.
   useEffect(() => {
+    setProjectScanOpen(false);
     if (!selected) return;
     void executeDetail(() => ipc.invoke<Envelope<ProjectDetail>>('vyasa:project', selected));
     void executeReport(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:report', selected));
@@ -102,6 +110,9 @@ export function Desktop(): React.JSX.Element {
   useEffect(() => {
     if (scanState.isSuccess && scanState.data) { setScanResult(scanState.data); loadStatus(); setItems([]); search(); }
   }, [scanState]);
+  useEffect(() => {
+    if (projectScanState.isSuccess && projectScanState.data) { setProjectScanResult(projectScanState.data); loadStatus(); setItems([]); search(); }
+  }, [projectScanState]);
 
   const submitSearch = (): void => { setItems([]); setSelected(null); setNextCursor(null); search(); };
   const chooseBackend = async (): Promise<void> => {
@@ -145,7 +156,7 @@ export function Desktop(): React.JSX.Element {
           {versionState.isError && <Alert severity="error">{versionState.statusMessage}</Alert>}
           <Typography>{t['settings.version']}: {version || t['settings.pending']}</Typography>
           <Typography>{t['settings.uiVersion']}: {__APP_VERSION__}</Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{t['scan.unsupported']}</Typography>
+          {!projectScanSupported && <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>{t['scan.unsupported']}</Typography>}
         </Paper> : <>
           <Stack direction="row" justifyContent="space-between" alignItems="start" spacing={2} sx={{ mb: 3 }}>
             <Box><Typography variant="h4" component="h1" gutterBottom>{t['projects.title']}</Typography>
@@ -186,6 +197,12 @@ export function Desktop(): React.JSX.Element {
               {selected && detailState.isError && <Alert severity="error">{detailState.statusMessage}</Alert>}
               {selected && detail && <Stack spacing={2}>
                 <Typography variant="h5">{detail.display_name}</Typography>
+                <Button variant="outlined" disabled={!projectScanSupported} onClick={() => setProjectScanOpen(true)}>{t['project.scan']}</Button>
+                {!projectScanSupported && <Typography variant="body2" color="text.secondary">{t['scan.unsupported']}</Typography>}
+                {projectScanResult?.project_id === selected && <Alert severity={projectScanResult.status === 'completed' ? 'success' : projectScanResult.status === 'partial' ? 'warning' : 'error'}>
+                  {projectScanResult.status === 'completed' ? t['index.completed'] : projectScanResult.status === 'partial' ? t['index.partial'] : t['index.failed']}
+                  <DataBlock title={t['project.scanOutcomes']} data={projectScanResult.checkouts} />
+                </Alert>}
                 <Stack direction="row" spacing={1}><Chip label={detail.state} size="small" /><Chip label={detailState.data?.meta?.freshness || t['common.unknown']} size="small" /></Stack>
                 <Typography variant="body2" color="text.secondary">{t['analysis.external']}</Typography><Divider />
                 <Tabs value={detailTab} onChange={(_event, value: number) => setDetailTab(value)} variant="scrollable" allowScrollButtonsMobile aria-label={t['project.evidence']}>
@@ -217,9 +234,15 @@ export function Desktop(): React.JSX.Element {
       <DialogContent><DialogContentText>{t['index.confirm']}</DialogContentText><TextField select fullWidth sx={{ mt: 2 }} label={t['workspace.select']} value={scanWorkspace} onChange={(e) => setScanWorkspace(e.target.value)}>
         <MenuItem value="">{t['workspace.all']}</MenuItem>
         {(workspaceState.data?.data.workspaces || []).map((item) => <MenuItem key={item.root} value={item.root}>{workspaceLabel(item)}</MenuItem>)}
-      </TextField><DialogContentText sx={{ mt: 2 }}>{t['scan.unsupported']}</DialogContentText></DialogContent>
+      </TextField></DialogContent>
       <DialogActions><Button onClick={() => setScanOpen(false)}>{t['index.cancel']}</Button><Button onClick={() => { setScanOpen(false); setScanResult(null); void executeScan(() => ipc.invoke<ScanResult>('vyasa:scan', scanWorkspace || undefined)); }}>{t['index.scan']}</Button></DialogActions>
     </Dialog>
+    <Dialog open={projectScanOpen} onClose={() => setProjectScanOpen(false)}><DialogTitle>{t['project.scan']}</DialogTitle>
+      <DialogContent><DialogContentText>{t['project.scanConfirm']} {detail?.display_name}</DialogContentText></DialogContent>
+      <DialogActions><Button onClick={() => setProjectScanOpen(false)}>{t['index.cancel']}</Button><Button disabled={!selected || !projectScanSupported} onClick={() => { const id = selected; setProjectScanOpen(false); setProjectScanResult(null); if (id) void executeProjectScan(() => ipc.invoke<ProjectScanResult>('vyasa:project-scan', id)); }}>{t['index.scan']}</Button></DialogActions>
+    </Dialog>
+    {projectScanState.state === StateType.LOADING && <Dialog open><DialogContent><Stack direction="row" spacing={2} alignItems="center"><CircularProgress size={24} /><Typography>{t['project.scanning']}</Typography></Stack></DialogContent></Dialog>}
+    {projectScanState.isError && <Dialog open onClose={() => setProjectScanState((s) => ({ ...s, isError: false }))}><DialogTitle>{t['common.error']}</DialogTitle><DialogContent>{projectScanState.statusMessage}</DialogContent><DialogActions><Button onClick={() => setProjectScanState((s) => ({ ...s, isError: false }))}>{t['common.close']}</Button></DialogActions></Dialog>}
     {scanState.state === StateType.LOADING && <Dialog open><DialogContent><Stack direction="row" spacing={2} alignItems="center"><CircularProgress size={24} /><Typography>{t['index.running']}</Typography></Stack></DialogContent></Dialog>}
     {scanState.isError && <Dialog open onClose={() => setScanState((s) => ({ ...s, isError: false }))}><DialogTitle>{t['common.error']}</DialogTitle><DialogContent>{scanState.statusMessage}</DialogContent><DialogActions><Button onClick={() => setScanState((s) => ({ ...s, isError: false }))}>{t['common.close']}</Button></DialogActions></Dialog>}
     <Dialog open={nameOpen} onClose={() => { if (!nameSaving) setNameOpen(false); }}><DialogTitle>{t['workspace.nameTitle']}</DialogTitle>
