@@ -15,7 +15,7 @@ const translations = { en: {
   'project.overview': 'Overview', 'project.profile': 'Profile', 'project.review': 'Review candidates',
   'project.metadata': 'Repository observations', 'project.name': 'Name', 'project.scope': 'Scope', 'project.source': 'Source',
   'project.resolution': 'Resolution', 'project.constraint': 'Constraint', 'project.coverage': 'Coverage',
-  'index.status': 'Index status', 'index.refresh': 'Scan all configured workspaces', 'index.confirm': 'Run an explicit scan of all configured workspace roots?',
+  'index.status': 'Index status', 'index.refresh': 'Scan workspaces', 'index.confirm': 'Choose the workspace scope to scan.',
   'index.scan': 'Run scan', 'index.cancel': 'Cancel', 'index.running': 'Scanning configured workspaces…',
   'index.completed': 'Scan finished', 'index.partial': 'Scan completed with warnings',
   'settings.title': 'Backend connection', 'settings.select': 'Select Vyasa CLI', 'settings.version': 'Backend version',
@@ -24,9 +24,9 @@ const translations = { en: {
   'common.retry': 'Retry', 'common.close': 'Close', 'common.loading': 'Loading…', 'common.error': 'Unable to load data',
   'common.unknown': 'Unknown', 'common.back': 'Back', 'common.unavailable': 'Not available',
   'technology.help': 'Enter a supported technology key, such as react or fastapi.',
-  'workspace.help': 'The current backend searches the whole index. Workspace selection is not yet supported.',
+  'workspace.help': 'Choose all workspaces or one configured root.', 'workspace.select': 'Workspace', 'workspace.all': 'All workspaces',
   'report.empty': 'No report information is available.', 'data.source': 'Backend response',
-  'scan.unsupported': 'Individual workspace and project scan scopes are not supported by this backend.',
+  'scan.unsupported': 'Project-specific scanning is not yet available.',
   'analysis.external': 'Deeper analysis is performed in an external coding agent; refresh the index after its work is complete.'
 } };
 function App(): React.JSX.Element {

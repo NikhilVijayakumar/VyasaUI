@@ -16,3 +16,10 @@
 ## 3. Integration
 
 - [ ] 3.1 Build and exercise the Electron app against the installed backend using read-only queries; verify startup, accessibility and real data.
+
+## 4. Workspace browsing slice
+
+- [x] 4.1 List configured roots and filter indexed search in the backend before pagination.
+- [x] 4.2 Scan one configured root without reconciling unrelated roots; test with isolated data.
+- [x] 4.3 Connect workspace selection and explicit all-or-one workspace scanning to Electron and exercise the deployed backend with isolated data.
+- [ ] 4.4 Add canonical workspace names, project-scoped scanning and technology selection when their backend contracts are available.

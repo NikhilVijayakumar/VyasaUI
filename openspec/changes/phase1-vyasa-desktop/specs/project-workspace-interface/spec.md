@@ -13,3 +13,14 @@ The application SHALL use Astra public state and IPC capabilities and Prati publ
 #### Scenario: Project results load
 - **WHEN** a supported project query completes
 - **THEN** the renderer presents the result through the application's Astra and Prati integration
+
+### Requirement: Browse by workspace or technology
+The application SHALL offer separate workspace and technology project views using backend-provided workspace and technology information. The workspace view SHALL allow all configured workspaces or one workspace to be selected; the technology view SHALL allow a technology to be selected without a workspace filter. Both views SHALL open project details directly.
+
+#### Scenario: Select a workspace
+- **WHEN** a user selects a configured workspace
+- **THEN** the project list contains only projects returned by the backend for that workspace
+
+#### Scenario: Browse by technology
+- **WHEN** a user selects a technology
+- **THEN** the project list contains projects matching that technology across workspaces

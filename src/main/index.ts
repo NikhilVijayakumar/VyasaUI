@@ -47,13 +47,15 @@ function invokeBackend(args: string[], scan = false): Promise<object> {
 function registerHandlers(): void {
   ipcMain.handle('vyasa:version', () => invokeBackend(['query', 'version']));
   ipcMain.handle('vyasa:status', () => invokeBackend(['query', 'status']));
+  ipcMain.handle('vyasa:workspaces', () => invokeBackend(['query', 'workspaces']));
   ipcMain.handle('vyasa:search', (_event, input: unknown) => {
     if (!input || typeof input !== 'object') return failure('Invalid search request.');
-    const { query, technology, cursor } = input as Record<string, unknown>;
-    if ([query, technology, cursor].some((v) => v !== undefined && (typeof v !== 'string' || v.length > 500))) return failure('Invalid search request.');
+    const { query, technology, cursor, workspace } = input as Record<string, unknown>;
+    if ([query, technology, cursor, workspace].some((v) => v !== undefined && (typeof v !== 'string' || v.length > 500))) return failure('Invalid search request.');
     const args = ['query', 'search', '--limit', '50'];
     if (typeof query === 'string' && query.trim()) args.push('--query=' + query.trim());
     if (typeof technology === 'string' && technology.trim()) args.push('--technology=' + technology.trim());
+    if (typeof workspace === 'string' && workspace) args.push('--workspace=' + workspace);
     if (typeof cursor === 'string' && cursor) args.push('--cursor=' + cursor);
     return invokeBackend(args);
   });
@@ -63,7 +65,10 @@ function registerHandlers(): void {
       return invokeBackend(['query', name, id]);
     });
   }
-  ipcMain.handle('vyasa:scan', () => invokeBackend(['scan'], true));
+  ipcMain.handle('vyasa:scan', (_event, workspace: unknown) => {
+    if (workspace !== undefined && (typeof workspace !== 'string' || !workspace || workspace.length > 500)) return failure('Invalid workspace.');
+    return invokeBackend(typeof workspace === 'string' ? ['scan', '--workspace=' + workspace] : ['scan'], true);
+  });
   ipcMain.handle('vyasa:select', async () => {
     if (!activeWindow) return failure('No application window is available.');
     const picked = await dialog.showOpenDialog(activeWindow, { title: 'Select the Vyasa CLI executable', properties: ['openFile'] });

@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-const channels = new Set(['vyasa:version', 'vyasa:status', 'vyasa:search', 'vyasa:project', 'vyasa:report', 'vyasa:dependencies', 'vyasa:scan', 'vyasa:select']);
+const channels = new Set(['vyasa:version', 'vyasa:status', 'vyasa:workspaces', 'vyasa:search', 'vyasa:project', 'vyasa:report', 'vyasa:dependencies', 'vyasa:scan', 'vyasa:select']);
 contextBridge.exposeInMainWorld('electronAPI', {
   invoke: async (channel: string, ...args: unknown[]) => {
     if (!channels.has(channel)) return Promise.reject(new Error('Unsupported operation'));
