@@ -10,7 +10,7 @@
 
 - [x] 2.1 Implement a narrow validated Electron preload/main boundary for backend discovery and read-only queries; verify failure and injection handling.
 - [x] 2.2 Implement supported explicit scanning and report partial/failure outcomes; verify against isolated backend fixtures.
-- [ ] 2.3 Build workspace and technology browsing and project evidence views using Astra and Prati; verify populated, empty, inaccessible and error states.
+- [x] 2.3 Build workspace and technology browsing and project evidence views using Astra and Prati; verify populated, empty, inaccessible and error states.
 - [x] 2.4 Implement supported phase-one review and project details without inventing backend capabilities; verify ownership, provenance and accessibility.
 
 ## 3. Integration
