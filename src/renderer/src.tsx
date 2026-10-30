@@ -11,7 +11,7 @@ const translations = { en: {
   'projects.search': 'Search projects', 'projects.technology': 'Technology', 'projects.allTechnologies': 'All technologies', 'projects.apply': 'Search',
   'projects.empty': 'No projects match this query.', 'projects.more': 'Load more',
   'project.choose': 'Select a project to see its indexed details.', 'project.evidence': 'Project evidence',
-  'project.observations': 'Indexed observations', 'project.report': 'Project report', 'project.dependencies': 'Dependencies',
+  'project.observations': 'Indexed observations', 'project.report': 'Project report', 'project.dependencies': 'Dependencies', 'project.details': 'Project details',
   'project.overview': 'Overview', 'project.profile': 'Profile', 'project.context': 'Profile context', 'project.review': 'Review candidates',
   'project.contextDescription': 'Indexed evidence and guidance for an external coding agent. Review findings before taking action.',
   'project.metadata': 'Repository observations', 'project.name': 'Name', 'project.scope': 'Scope', 'project.source': 'Source',

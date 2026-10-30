@@ -18,6 +18,25 @@ interface Workspace { root: string; status: string; name?: string | null }
 interface Technology { key: string; name: string; category: string; ecosystem: string }
 const ipc = new IpcService();
 
+// A response for a previous selection must never overwrite the current project's state.
+function useSelectedRequest<T>(selected: string | null, channel: string) {
+  const [state, , setState] = useDataState<Envelope<T>>();
+  useEffect(() => {
+    if (!selected) return;
+    let current = true;
+    setState((old) => ({ ...old, state: StateType.LOADING }));
+    void ipc.invoke<Envelope<T>>(channel, selected).then((response) => {
+      if (!current) return;
+      setState((old) => ({
+        ...old, state: StateType.COMPLETED, isError: response.isError, isSuccess: response.isSuccess,
+        status: response.status, statusMessage: response.statusMessage, data: response.data ?? null
+      }));
+    });
+    return () => { current = false; };
+  }, [selected, channel]);
+  return state;
+}
+
 function DataBlock({ title, data }: { title: string; data: unknown }): React.JSX.Element {
   const { literal: t } = useLanguage();
   const renderValue = (value: unknown, depth = 0): React.ReactNode => {
@@ -59,14 +78,14 @@ export function Desktop(): React.JSX.Element {
   const [nameSaving, setNameSaving] = useState(false);
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [searchState, executeSearch] = useDataState<Envelope<SearchResult>>();
-  const [detailState, executeDetail] = useDataState<Envelope<ProjectDetail>>();
+  const detailState = useSelectedRequest<ProjectDetail>(selected, 'vyasa:project');
+  const reportState = useSelectedRequest<Record<string, unknown>>(selected, 'vyasa:report');
+  const dependencyState = useSelectedRequest<Record<string, unknown>>(selected, 'vyasa:dependencies');
+  const contextState = useSelectedRequest<Record<string, unknown>>(selected, 'vyasa:context');
   const [statusState, executeStatus] = useDataState<Envelope<Record<string, unknown>>>();
   const [versionState, executeVersion] = useDataState<Envelope<{ version: string }>>();
   const [scanState, executeScan, setScanState] = useDataState<ScanResult>();
   const [projectScanState, executeProjectScan, setProjectScanState] = useDataState<ProjectScanResult>();
-  const [reportState, executeReport] = useDataState<Envelope<Record<string, unknown>>>();
-  const [dependencyState, executeDependencies] = useDataState<Envelope<Record<string, unknown>>>();
-  const [contextState, executeContext] = useDataState<Envelope<Record<string, unknown>>>();
   const [workspaceState, executeWorkspaces] = useDataState<Envelope<{ workspaces: Workspace[] }>>();
   const [technologyState, executeTechnologies] = useDataState<Envelope<{ registry_version: number; technologies: Technology[] }>>();
 
@@ -101,11 +120,6 @@ export function Desktop(): React.JSX.Element {
   useEffect(() => { setItems([]); setSelected(null); setNextCursor(null); search(); }, [page, workspace, technology]); // Text search is submitted explicitly.
   useEffect(() => {
     setProjectScanOpen(false);
-    if (!selected) return;
-    void executeDetail(() => ipc.invoke<Envelope<ProjectDetail>>('vyasa:project', selected));
-    void executeReport(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:report', selected));
-    void executeDependencies(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:dependencies', selected));
-    void executeContext(() => ipc.invoke<Envelope<Record<string, unknown>>>('vyasa:context', selected));
   }, [selected]);
   useEffect(() => {
     if (scanState.isSuccess && scanState.data) { setScanResult(scanState.data); loadStatus(); setItems([]); search(); }
@@ -191,7 +205,7 @@ export function Desktop(): React.JSX.Element {
               </ListItemButton>)}</List>
               {nextCursor && <Button onClick={() => search(nextCursor)}>{t['projects.more']}</Button>}
             </Paper>
-            <Paper variant="outlined" sx={{ p: 3, minWidth: 0 }}>
+            <Paper component="section" aria-label={t['project.details']} variant="outlined" sx={{ p: 3, minWidth: 0 }}>
               {!selected && <Typography color="text.secondary">{t['project.choose']}</Typography>}
               {selected && detailState.state === StateType.LOADING && <CircularProgress size={24} aria-label={t['common.loading']} />}
               {selected && detailState.isError && <Alert severity="error">{detailState.statusMessage}</Alert>}
@@ -206,24 +220,26 @@ export function Desktop(): React.JSX.Element {
                 <Stack direction="row" spacing={1}><Chip label={detail.state} size="small" /><Chip label={detailState.data?.meta?.freshness || t['common.unknown']} size="small" /></Stack>
                 <Typography variant="body2" color="text.secondary">{t['analysis.external']}</Typography><Divider />
                 <Tabs value={detailTab} onChange={(_event, value: number) => setDetailTab(value)} variant="scrollable" allowScrollButtonsMobile aria-label={t['project.evidence']}>
-                  <Tab label={t['project.overview']} /><Tab label={t['project.profile']} /><Tab label={t['project.report']} /><Tab label={t['project.dependencies']} /><Tab label={t['project.context']} />
+                  {['overview', 'profile', 'report', 'dependencies', 'context'].map((key, index) => <Tab key={key} id={`project-tab-${index}`} aria-controls={`project-tabpanel-${index}`} label={t['project.' + key]} />)}
                 </Tabs>
-                {detailTab === 0 && <DataBlock title={t['project.observations']} data={detail.checkouts} />}
-                {detailTab === 1 && <DataBlock title={t['project.evidence']} data={{ profile: detail.profile, identity: detail.identity, review_candidates: detail.review_candidates }} />}
-                {detailTab === 2 && reportState.isSuccess && reportState.data?.data?.project_id === selected && <DataBlock title={t['project.report']} data={reportState.data.data} />}
-                {detailTab === 2 && reportState.isError && <Alert severity="warning">{reportState.statusMessage}</Alert>}
-                {detailTab === 3 && dependencyState.isSuccess && dependencyState.data?.data?.project_id === selected && <>
-                  <DataBlock title={t['project.coverage']} data={dependencyState.data?.data?.coverage} />
-                  <Typography variant="subtitle1" fontWeight={600}>{t['project.dependencies']}</Typography>
-                  <DataTable columns={[{ id: 'name', label: t['project.name'] }, { id: 'scope', label: t['project.scope'] }, { id: 'constraint', label: t['project.constraint'] }, { id: 'source', label: t['project.source'] }, { id: 'resolution', label: t['project.resolution'] }]} data={dependencyRows} keyField="rowKey" aria-label={t['project.dependencies']} />
-                </>}
-                {detailTab === 3 && dependencyState.isError && <Alert severity="warning">{dependencyState.statusMessage}</Alert>}
-                {detailTab === 4 && <>
-                  <Typography variant="body2" color="text.secondary">{t['project.contextDescription']}</Typography>
-                  {contextState.state === StateType.LOADING && <CircularProgress size={22} aria-label={t['common.loading']} />}
-                  {contextState.isError && <Alert severity="warning">{contextState.statusMessage}</Alert>}
-                  {contextState.isSuccess && contextState.data?.data?.project_id === selected && <DataBlock title={t['project.context']} data={contextState.data.data} />}
-                </>}
+                <Box role="tabpanel" id={`project-tabpanel-${detailTab}`} aria-labelledby={`project-tab-${detailTab}`}>
+                  {detailTab === 0 && <DataBlock title={t['project.observations']} data={detail.checkouts} />}
+                  {detailTab === 1 && <DataBlock title={t['project.evidence']} data={{ profile: detail.profile, identity: detail.identity, review_candidates: detail.review_candidates }} />}
+                  {detailTab === 2 && reportState.isSuccess && reportState.data?.data?.project_id === selected && <DataBlock title={t['project.report']} data={reportState.data.data} />}
+                  {detailTab === 2 && reportState.isError && <Alert severity="warning">{reportState.statusMessage}</Alert>}
+                  {detailTab === 3 && dependencyState.isSuccess && dependencyState.data?.data?.project_id === selected && <>
+                    <DataBlock title={t['project.coverage']} data={dependencyState.data?.data?.coverage} />
+                    <Typography variant="subtitle1" fontWeight={600}>{t['project.dependencies']}</Typography>
+                    <DataTable columns={[{ id: 'name', label: t['project.name'] }, { id: 'scope', label: t['project.scope'] }, { id: 'constraint', label: t['project.constraint'] }, { id: 'source', label: t['project.source'] }, { id: 'resolution', label: t['project.resolution'] }]} data={dependencyRows} keyField="rowKey" aria-label={t['project.dependencies']} />
+                  </>}
+                  {detailTab === 3 && dependencyState.isError && <Alert severity="warning">{dependencyState.statusMessage}</Alert>}
+                  {detailTab === 4 && <>
+                    <Typography variant="body2" color="text.secondary">{t['project.contextDescription']}</Typography>
+                    {contextState.state === StateType.LOADING && <CircularProgress size={22} aria-label={t['common.loading']} />}
+                    {contextState.isError && <Alert severity="warning">{contextState.statusMessage}</Alert>}
+                    {contextState.isSuccess && contextState.data?.data?.project_id === selected && <DataBlock title={t['project.context']} data={contextState.data.data} />}
+                  </>}
+                </Box>
               </Stack>}
             </Paper>
           </Box>

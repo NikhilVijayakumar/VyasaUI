@@ -8,14 +8,14 @@
 
 ## 2. Desktop integration
 
-- [ ] 2.1 Implement a narrow validated Electron preload/main boundary for backend discovery and read-only queries; verify failure and injection handling.
+- [x] 2.1 Implement a narrow validated Electron preload/main boundary for backend discovery and read-only queries; verify failure and injection handling.
 - [ ] 2.2 Implement supported explicit scanning and report partial/failure outcomes; verify against isolated backend fixtures.
 - [ ] 2.3 Build workspace and technology browsing and project evidence views using Astra and Prati; verify populated, empty, inaccessible and error states.
 - [ ] 2.4 Implement supported phase-one review and project details without inventing backend capabilities; verify ownership, provenance and accessibility.
 
 ## 3. Integration
 
-- [ ] 3.1 Build and exercise the Electron app against the installed backend using read-only queries; verify startup, accessibility and real data.
+- [x] 3.1 Build and exercise the Electron app against the installed backend using read-only queries; verify startup, accessibility and real data.
 
 ## 4. Workspace browsing slice
 
@@ -30,4 +30,4 @@
 
 - [x] 5.1 Expose the existing indexed profile-context CLI query through the validated Electron boundary.
 - [x] 5.2 Display the selected project's profile context, source and workflow; prevent another project's report, dependency or context payload from being presented as the current project.
-- [ ] 5.3 Verify delayed and out-of-order project responses, keyboard navigation and accessibility across all project detail tabs.
+- [x] 5.3 Verify delayed and out-of-order project responses, keyboard navigation and accessibility across all project detail tabs.
