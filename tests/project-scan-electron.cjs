@@ -41,6 +41,16 @@ async function main() {
     await key('Enter');
     await until("document.body.textContent.includes('Checkout outcomes')");
     assert.equal(await evaluate("document.body.textContent.includes('Scan finished')"), true);
+
+    fs.renameSync(repo, `${repo}-moved`);
+    await until("[...document.querySelectorAll('button')].some(e => e.textContent === 'Scan project' && !e.disabled)");
+    await evaluate("[...document.querySelectorAll('button')].find(e => e.textContent === 'Scan project').focus()");
+    await key('Enter');
+    await until("!!document.querySelector('[role=dialog]')");
+    await evaluate("[...document.querySelector('[role=dialog]').querySelectorAll('button')].find(e => e.textContent === 'Run scan').focus()");
+    await key('Enter');
+    await until("document.body.textContent.includes('Scan failed')");
+    assert.equal(await evaluate("document.body.textContent.includes('MISSING')"), true);
     console.log(`isolated Electron keyboard and scan journey passed; fixture: ${temp}`);
   } finally {
     close();
